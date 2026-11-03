@@ -74,3 +74,4 @@ class ConceptSimplifier:
 
 # Singleton instance
 concept_simplifier = ConceptSimplifier()
+

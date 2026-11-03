@@ -287,3 +287,4 @@ class ResponseValidator:
             5: "Trace through the worked solution with an edge case like an empty input to verify understanding.",
         }
         return steps.get(level, steps[1])
+

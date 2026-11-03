@@ -91,3 +91,4 @@ class ContextRetriever:
 
 # Singleton instance
 context_retriever = ContextRetriever()
+

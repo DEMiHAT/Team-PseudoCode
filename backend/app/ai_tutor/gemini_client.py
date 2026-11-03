@@ -240,3 +240,4 @@ class GeminiClient:
 
 # Default singleton client instance
 gemini_client = GeminiClient()
+

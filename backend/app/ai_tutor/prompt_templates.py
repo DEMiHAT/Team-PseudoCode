@@ -192,3 +192,4 @@ RULES:
 - Return ONLY valid JSON array. No markdown fences, no explanatory preamble.
 - Options must be plausible, specifically designed to address common student slips (such as off-by-one or missing empty checks).
 """.strip()
+

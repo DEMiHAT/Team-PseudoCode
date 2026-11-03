@@ -76,3 +76,4 @@ class PracticeGenerator:
 
 # Singleton instance
 practice_generator = PracticeGenerator()
+

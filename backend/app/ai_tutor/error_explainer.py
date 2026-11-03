@@ -94,3 +94,4 @@ class ErrorExplainer:
 
 # Singleton instance
 error_explainer = ErrorExplainer()
+

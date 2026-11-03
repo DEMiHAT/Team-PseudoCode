@@ -66,3 +66,4 @@ class HintGenerator:
 
 # Singleton instance
 hint_generator = HintGenerator()
+
