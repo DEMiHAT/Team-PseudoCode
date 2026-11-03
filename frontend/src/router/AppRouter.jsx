@@ -14,6 +14,7 @@ export default function AppRouter() {
         <Route path="/" element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="workspace/:problemId" element={<WorkspacePage />} />
+          <Route path="workspace" element={<WorkspacePage />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />

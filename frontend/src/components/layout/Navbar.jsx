@@ -22,7 +22,7 @@ export default function Navbar() {
 
   const navLinks = [
     { to: '/', label: 'Curriculum & Units', icon: BookOpen },
-    { to: '/workspace/1', label: 'Coding Workspace', icon: Terminal },
+    { to: '/workspace/2', label: 'Valid Parentheses IDE', icon: Terminal },
     { to: '/analytics', label: 'BKT Analytics', icon: BarChart2 },
     { to: '/settings', label: 'Architecture & Health', icon: SettingsIcon },
   ];

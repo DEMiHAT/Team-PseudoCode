@@ -130,21 +130,66 @@ def seed_initial_content(db: Session) -> None:
             slug="valid-parentheses",
             activity_type="coding_exercise",
             difficulty="Easy",
-            description_md="Determine if the input string containing brackets '()[]{}' is balanced.",
+            description_md=(
+                "Given a string `s` containing just the characters `'('`, `')'`, `'{'`, `'}'`, `'['` and `']'`, "
+                "determine if the input string is valid.\n\n"
+                "An input string is valid if:\n"
+                "1. Open brackets must be closed by the same type of brackets.\n"
+                "2. Open brackets must be closed in the correct order (LIFO).\n"
+                "3. Every close bracket has a corresponding open bracket of the same type."
+            ),
             starter_template=(
+                "import java.util.Scanner;\n"
                 "import java.util.Stack;\n\n"
-                "class Solution {\n"
-                "    public boolean isValid(String s) {\n"
+                "public class Main {\n"
+                "    public static boolean isValid(String s) {\n"
                 "        Stack<Character> stack = new Stack<>();\n"
-                "        // TODO: Validate bracket nesting\n"
+                "        // TODO: Implement LIFO bracket validation\n"
                 "        return stack.isEmpty();\n"
+                "    }\n\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner scanner = new Scanner(System.in);\n"
+                "        if (scanner.hasNextLine()) {\n"
+                "            String input = scanner.nextLine().trim();\n"
+                "            System.out.println(isValid(input));\n"
+                "        }\n"
                 "    }\n"
                 "}\n"
             ),
-            solution_reference="",
+            solution_reference=(
+                "import java.util.Scanner;\n"
+                "import java.util.Stack;\n\n"
+                "public class Main {\n"
+                "    public static boolean isValid(String s) {\n"
+                "        Stack<Character> stack = new Stack<>();\n"
+                "        for (char c : s.toCharArray()) {\n"
+                "            if (c == '(' || c == '{' || c == '[') {\n"
+                "                stack.push(c);\n"
+                "            } else {\n"
+                "                if (stack.isEmpty()) return false;\n"
+                "                char top = stack.pop();\n"
+                "                if (c == ')' && top != '(') return false;\n"
+                "                if (c == '}' && top != '{') return false;\n"
+                "                if (c == ']' && top != '[') return false;\n"
+                "            }\n"
+                "        }\n"
+                "        return stack.isEmpty();\n"
+                "    }\n\n"
+                "    public static void main(String[] args) {\n"
+                "        Scanner scanner = new Scanner(System.in);\n"
+                "        if (scanner.hasNextLine()) {\n"
+                "            String input = scanner.nextLine().trim();\n"
+                "            System.out.println(isValid(input));\n"
+                "        }\n"
+                "    }\n"
+                "}\n"
+            ),
             test_cases_json=json.dumps([
-                {"id": 1, "input": "\"()\"", "expected": "true", "is_hidden": False},
-                {"id": 2, "input": "\"(]\"", "expected": "false", "is_hidden": False},
+                {"id": 1, "input": "()", "expected": "true", "is_hidden": False},
+                {"id": 2, "input": "()[]{}", "expected": "true", "is_hidden": False},
+                {"id": 3, "input": "(]", "expected": "false", "is_hidden": False},
+                {"id": 4, "input": "([)]", "expected": "false", "is_hidden": False},
+                {"id": 5, "input": "{[]}", "expected": "true", "is_hidden": False},
             ]),
             is_active=True,
         )

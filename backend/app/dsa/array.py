@@ -143,3 +143,4 @@ class DeterministicArray(BaseDataStructure):
             status=TraceStepStatus.SUCCESS,
         )
         return removed_val
+

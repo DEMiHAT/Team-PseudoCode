@@ -145,3 +145,4 @@ class DeterministicBST(BaseDataStructure):
             status=TraceStepStatus.ELEMENT_NOT_FOUND,
         )
         return False
+

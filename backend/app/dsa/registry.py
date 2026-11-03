@@ -78,3 +78,4 @@ class DSARegistry:
     @classmethod
     def create_hash_table(cls, capacity: int = 7) -> DeterministicHashTable:
         return DeterministicHashTable(capacity=capacity)
+

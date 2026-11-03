@@ -128,3 +128,4 @@ class BaseDataStructure(ABC):
             steps=self.steps,
             metadata=metadata or {},
         )
+

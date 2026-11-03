@@ -119,3 +119,4 @@ def execute_hashing_trace(payload: HashExecutionRequest):
         engine.insert(key=k, value=f"item_{k}")
     trace = engine.get_trace()
     return success_response(data=trace, message=f"Executed hashing with {len(payload.keys_to_insert)} key insertions")
+

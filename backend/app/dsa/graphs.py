@@ -99,3 +99,4 @@ class DeterministicGraph(BaseDataStructure):
                     )
 
         return order
+

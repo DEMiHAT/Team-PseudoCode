@@ -110,3 +110,4 @@ class DeterministicSearching(BaseDataStructure):
             status=TraceStepStatus.ELEMENT_NOT_FOUND,
         )
         return -1
+

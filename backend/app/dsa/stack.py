@@ -279,3 +279,4 @@ class DeterministicStack(BaseDataStructure):
                 self.reset()
 
         return self.get_trace(metadata={"operation_count": len(operations)})
+

@@ -157,3 +157,4 @@ class DeterministicLinkedList(BaseDataStructure):
             updated_state=self.snapshot(),
             status=TraceStepStatus.SUCCESS,
         )
+

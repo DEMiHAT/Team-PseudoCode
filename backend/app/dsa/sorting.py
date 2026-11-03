@@ -73,3 +73,4 @@ class DeterministicSorting(BaseDataStructure):
             status=TraceStepStatus.SUCCESS,
         )
         return self.array
+
