@@ -154,3 +154,4 @@ class BayesianKnowledgeTracer:
 
 # Global singleton instance
 bkt_engine = BayesianKnowledgeTracer()
+

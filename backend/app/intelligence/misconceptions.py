@@ -40,6 +40,19 @@ class CognitiveMisconceptionDiagnoser:
 
     CONFIRMATION_THRESHOLD = 2
 
+    def __init__(self):
+        self.history: Dict[str, MisconceptionRecord] = {}
+
+    def get_confirmed_misconceptions(self, history: Optional[Dict[str, MisconceptionRecord]] = None) -> List[MisconceptionRecord]:
+        """Returns all confirmed misconceptions (observed >= threshold times)."""
+        hist = history if history is not None else self.history
+        return [rec for rec in hist.values() if rec.status == MisconceptionStatus.CONFIRMED]
+
+    def get_candidate_misconceptions(self, history: Optional[Dict[str, MisconceptionRecord]] = None) -> List[MisconceptionRecord]:
+        """Returns all candidate unconfirmed misconceptions (observed 1 time)."""
+        hist = history if history is not None else self.history
+        return [rec for rec in hist.values() if rec.status == MisconceptionStatus.CANDIDATE]
+
     # Configurable Catalog of Cognitive Misconceptions for Data Structures & Algorithms
     RULES_CATALOG: Dict[str, Dict[str, str]] = {
         "MISC-EMPTY-POP": {
@@ -149,3 +162,9 @@ class CognitiveMisconceptionDiagnoser:
 
 
 misconception_diagnoser = CognitiveMisconceptionDiagnoser()
+
+
+def get_default_diagnoser() -> CognitiveMisconceptionDiagnoser:
+    """Returns the default singleton CognitiveMisconceptionDiagnoser instance."""
+    return misconception_diagnoser
+

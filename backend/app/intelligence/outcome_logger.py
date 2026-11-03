@@ -67,3 +67,4 @@ class InterventionOutcomeLogger:
 
 
 outcome_logger = InterventionOutcomeLogger()
+
