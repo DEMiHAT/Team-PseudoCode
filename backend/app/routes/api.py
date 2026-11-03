@@ -10,6 +10,7 @@ from app.routes.problem_routes import router as problem_router
 from app.routes.execution_routes import router as execution_router
 from app.routes.tutoring_routes import router as tutoring_router
 from app.routes.learner_routes import router as learner_router
+from app.routes.dsa_routes import router as dsa_router
 
 api_v1_router = APIRouter()
 
@@ -19,4 +20,5 @@ api_v1_router.include_router(problem_router, prefix="/problems", tags=["DSA Codi
 api_v1_router.include_router(execution_router, prefix="/execution", tags=["Judge0 Code Execution"])
 api_v1_router.include_router(tutoring_router, prefix="/tutoring", tags=["Adaptive Tutoring & Scaffolding"])
 api_v1_router.include_router(learner_router, prefix="/learners", tags=["Learner Knowledge States"])
+api_v1_router.include_router(dsa_router, prefix="/dsa", tags=["Deterministic DSA Engine & Visualization"])
 
