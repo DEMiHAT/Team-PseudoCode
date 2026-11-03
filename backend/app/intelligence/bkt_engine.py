@@ -67,3 +67,4 @@ class BKTEngine:
             "mastery_percentage": round(next_prior * 100.0, 1),
             "is_mastered": next_prior >= cls.MASTERY_THRESHOLD,
         }
+

@@ -1,25 +1,27 @@
 """
-Pydantic schemas for learner entities and profile management.
+Learner schemas adapter bridging Student entities to client profile format.
 """
 
 from datetime import datetime
-from typing import Optional, List
+from typing import List
 from pydantic import BaseModel, Field, ConfigDict
+from app.schemas.student import StudentBase
 
 
-class LearnerBase(BaseModel):
-    student_id: str = Field(..., description="College student registration ID", json_schema_extra={"example": "22IT045"})
-    full_name: str = Field(..., description="Student full name", json_schema_extra={"example": "Aarav Sharma"})
-    email: str = Field(..., description="Student email address", json_schema_extra={"example": "aarav.s@college.edu"})
-    semester: int = Field(default=3, ge=1, le=8)
+class LearnerBase(StudentBase):
+    pass
 
 
 class LearnerCreate(LearnerBase):
     pass
 
 
-class LearnerResponse(LearnerBase):
+class LearnerResponse(BaseModel):
     id: int
+    student_id: str
+    full_name: str
+    email: str
+    semester: int = 3
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 

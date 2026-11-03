@@ -23,3 +23,4 @@ export const curriculumService = {
     return await apiClient.get(`/problems/${problemId}`);
   },
 };
+

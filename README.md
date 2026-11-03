@@ -271,3 +271,4 @@ To migrate from local SQLite to PostgreSQL:
 | `POST` | `/api/v1/tutoring/scaffold` | Generate progressive scaffolding hints (Tiers 1 to 4) |
 | `POST` | `/api/v1/tutoring/diagnose` | Evaluate student code against IT22301 misconception rule catalog |
 | `GET` | `/api/v1/learners/{id}/profile`| Student profile and multidimensional BKT mastery statistics |
+

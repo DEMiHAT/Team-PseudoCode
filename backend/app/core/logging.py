@@ -34,3 +34,4 @@ def setup_logging(log_level: str = "INFO") -> logging.Logger:
 
 # Global logger instance
 logger = setup_logging()
+

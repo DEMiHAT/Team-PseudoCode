@@ -29,3 +29,4 @@ export default function CodeEditor({ value, onChange, language = 'java', readOnl
     </div>
   );
 }
+

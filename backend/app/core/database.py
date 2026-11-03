@@ -69,3 +69,4 @@ def init_db() -> None:
             seed_initial_content(session)
     except Exception as seed_err:
         logger.warning(f"Could not auto-seed database: {seed_err}")
+

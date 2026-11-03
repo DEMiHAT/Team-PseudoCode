@@ -3,12 +3,12 @@ Adaptive Tutoring and Scaffolding Routes.
 Provides progressive hints (Tiers 1-4) and rule-based misconception diagnoses.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.problem import Problem
-from app.models.intervention_log import InterventionLog
+from app.models.activity import Activity
+from app.models.intervention import Intervention
 from app.schemas.intelligence import (
     ScaffoldingRequest,
     ScaffoldingHintResponse,
@@ -34,16 +34,17 @@ async def get_scaffolding_hint(
     """
     Returns a progressive hint based on requested or calculated tier (1 to 4).
     Uses Gemini if configured, otherwise falls back to deterministic curriculum templates.
+    Logs intervention event for pedagogical efficacy auditing.
     """
-    problem = db.query(Problem).filter(Problem.id == payload.problem_id).first()
-    if not problem:
-        raise ResourceNotFoundException("Problem", payload.problem_id)
+    activity_obj = db.query(Activity).filter(Activity.id == payload.problem_id).first()
+    if not activity_obj:
+        raise ResourceNotFoundException("Activity", payload.problem_id)
 
     tier = payload.requested_level or 1
 
     # Fallback pedagogical content tailored for DSA
     fallback_templates = {
-        "tier_1": f"Reflect on the invariants of {problem.title}. Have you guarded for null or empty edge conditions?",
+        "tier_1": f"Reflect on the invariants of {activity_obj.title}. Have you guarded for null or empty edge conditions?",
         "tier_2": "Algorithmic logic: 1. Initialize sentinels. 2. Loop until pointer boundary is reached. 3. Return updated head/state.",
         "tier_3": "State Trace: For input [1, 2, 3], at step 1: current=1, next=2. After reversal: 1.next=null, prev=1.",
         "tier_4": "Skeleton check:\n```java\nListNode next = current.next;\ncurrent.next = prev;\nprev = current;\ncurrent = next;\n```",
@@ -51,22 +52,23 @@ async def get_scaffolding_hint(
 
     hint_data = await ProgressiveScaffoldingEngine.get_scaffolding_hint(
         tier=tier,
-        problem_title=problem.title,
-        problem_description=problem.description_md,
+        problem_title=activity_obj.title,
+        problem_description=activity_obj.description_md,
         student_code=payload.current_code,
         fallback_content=fallback_templates,
         error_context=payload.compiler_error or payload.failing_test_input,
     )
 
-    # Log intervention to database for efficacy analytics
-    log = InterventionLog(
-        learner_id=payload.learner_id,
-        problem_id=payload.problem_id,
-        concept_id=problem.concept_id,
+    # Persist Intervention record for efficacy analytics
+    log = Intervention(
+        student_id=payload.learner_id,
+        topic_id=activity_obj.topic_id,
+        activity_id=activity_obj.id,
         intervention_type=hint_data["pedagogical_strategy"],
-        scaffolding_level=hint_data["level"],
+        scaffolding_tier=hint_data["level"],
         trigger_reason="Student Requested Scaffold",
-        diagnosis_summary=hint_data["title"],
+        hint_content=hint_data["hint_text"],
+        is_llm_generated=hint_data.get("is_llm_generated", False),
     )
     db.add(log)
     db.commit()

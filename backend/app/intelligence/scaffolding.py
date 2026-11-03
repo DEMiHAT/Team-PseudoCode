@@ -98,3 +98,4 @@ class ProgressiveScaffoldingEngine:
             "is_llm_generated": False,
             "pedagogical_strategy": tier_meta["strategy"],
         }
+

@@ -1,21 +1,16 @@
 """
-Pydantic schemas for IT22301 concepts.
+Concept schemas adapter bridging Topic entities to client response format.
 """
 
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from app.schemas.topic import TopicResponse, TopicBase
 
 
-class ConceptResponse(BaseModel):
-    id: int
-    code: str
-    name: str
-    category: str
-    description: Optional[str] = None
-    order_index: int
-    model_config = ConfigDict(from_attributes=True)
+class ConceptResponse(TopicResponse):
+    category: Optional[str] = None
 
 
-class ConceptWithProblemCount(ConceptResponse):
+class ConceptWithProblemCount(TopicResponse):
+    category: Optional[str] = "General"
     problem_count: int = 0
     current_mastery_p: Optional[float] = 0.20

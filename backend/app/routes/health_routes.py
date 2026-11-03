@@ -51,3 +51,4 @@ async def get_system_health(db: Session = Depends(get_db)):
         data=health_payload,
         message="System health status retrieved successfully",
     )
+

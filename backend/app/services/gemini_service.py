@@ -149,3 +149,4 @@ class GeminiServiceClient:
 
 # Singleton service instance
 gemini_service = GeminiServiceClient()
+

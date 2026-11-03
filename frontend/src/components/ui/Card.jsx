@@ -12,3 +12,4 @@ export default function Card({ children, className = '', header, footer, ...prop
     </div>
   );
 }
+

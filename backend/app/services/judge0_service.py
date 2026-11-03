@@ -160,3 +160,4 @@ class Judge0ServiceClient:
 
 # Singleton service instance
 judge0_service = Judge0ServiceClient()
+

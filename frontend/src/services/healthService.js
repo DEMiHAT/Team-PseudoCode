@@ -8,3 +8,4 @@ export const healthService = {
     return await apiClient.get('/health');
   },
 };
+

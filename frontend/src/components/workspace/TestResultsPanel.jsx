@@ -135,3 +135,4 @@ export default function TestResultsPanel({ result, running = false }) {
     </div>
   );
 }
+

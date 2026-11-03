@@ -1,15 +1,15 @@
 """
-Problem browsing and problem workspace routes.
+Activity and Problem Workspace routes.
 """
 
 import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.problem import Problem
-from app.models.concept import Concept
+from app.models.activity import Activity
+from app.models.topic import Topic
 from app.schemas.problem import ProblemSummary, ProblemDetail, TestCaseItem
 from app.utilities.response import ApiResponse, success_response
 from app.utilities.exceptions import ResourceNotFoundException
@@ -17,45 +17,44 @@ from app.utilities.exceptions import ResourceNotFoundException
 router = APIRouter()
 
 
-@router.get("", response_model=ApiResponse[List[ProblemSummary]], summary="List coding problems")
+@router.get("", response_model=ApiResponse[List[ProblemSummary]], summary="List activities/problems")
 def list_problems(
-    concept_id: Optional[int] = Query(default=None, description="Filter by concept ID"),
+    concept_id: Optional[int] = Query(default=None, description="Filter by topic ID"),
     db: Session = Depends(get_db),
 ):
-    """Returns all active DSA practice problems, optionally filtered by concept."""
-    query = db.query(Problem).filter(Problem.is_active == True)
+    """Returns active coding activities, optionally filtered by topic ID."""
+    query = db.query(Activity).filter(Activity.is_active == True)
     if concept_id:
-        query = query.filter(Problem.concept_id == concept_id)
+        query = query.filter(Activity.topic_id == concept_id)
 
-    problems = query.all()
-    concept_ids = [p.concept_id for p in problems]
-    concepts = {c.id: c.code for c in db.query(Concept).filter(Concept.id.in_(concept_ids)).all()}
+    activities = query.all()
+    topic_ids = [a.topic_id for a in activities]
+    topics = {t.id: t.code for t in db.query(Topic).filter(Topic.id.in_(topic_ids)).all()}
 
     summaries = [
         ProblemSummary(
-            id=p.id,
-            concept_id=p.concept_id,
-            concept_code=concepts.get(p.concept_id),
-            title=p.title,
-            slug=p.slug,
-            difficulty=p.difficulty,
-            is_active=p.is_active,
+            id=a.id,
+            concept_id=a.topic_id,
+            concept_code=topics.get(a.topic_id),
+            title=a.title,
+            slug=a.slug,
+            difficulty=a.difficulty,
+            is_active=a.is_active,
         )
-        for p in problems
+        for a in activities
     ]
 
-    return success_response(data=summaries, message=f"Retrieved {len(summaries)} problems")
+    return success_response(data=summaries, message=f"Retrieved {len(summaries)} activities")
 
 
 @router.get("/{problem_id}", response_model=ApiResponse[ProblemDetail], summary="Get problem workspace details")
 def get_problem_detail(problem_id: int, db: Session = Depends(get_db)):
-    """Retrieves full problem details including Java starter code and visible test cases."""
-    problem = db.query(Problem).filter(Problem.id == problem_id, Problem.is_active == True).first()
-    if not problem:
-        raise ResourceNotFoundException("Problem", problem_id)
+    """Retrieves full activity details including Java starter template and visible test cases."""
+    activity_obj = db.query(Activity).filter(Activity.id == problem_id, Activity.is_active == True).first()
+    if not activity_obj:
+        raise ResourceNotFoundException("Activity", problem_id)
 
-    # Parse test cases and only expose public / non-hidden cases to the client
-    raw_test_cases = json.loads(problem.test_cases_json)
+    raw_test_cases = json.loads(activity_obj.test_cases_json or "[]")
     public_cases = [
         TestCaseItem(
             id=tc["id"],
@@ -69,15 +68,15 @@ def get_problem_detail(problem_id: int, db: Session = Depends(get_db)):
     ]
 
     detail = ProblemDetail(
-        id=problem.id,
-        concept_id=problem.concept_id,
-        title=problem.title,
-        slug=problem.slug,
-        difficulty=problem.difficulty,
-        description_md=problem.description_md,
-        starter_code_java=problem.starter_code_java,
+        id=activity_obj.id,
+        concept_id=activity_obj.topic_id,
+        title=activity_obj.title,
+        slug=activity_obj.slug,
+        difficulty=activity_obj.difficulty,
+        description_md=activity_obj.description_md,
+        starter_code_java=activity_obj.starter_template or "",
         sample_test_cases=public_cases,
-        is_active=problem.is_active,
+        is_active=activity_obj.is_active,
     )
 
-    return success_response(data=detail, message="Problem retrieved successfully")
+    return success_response(data=detail, message="Activity details retrieved successfully")

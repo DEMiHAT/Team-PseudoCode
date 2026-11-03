@@ -19,3 +19,4 @@ api_v1_router.include_router(problem_router, prefix="/problems", tags=["DSA Codi
 api_v1_router.include_router(execution_router, prefix="/execution", tags=["Judge0 Code Execution"])
 api_v1_router.include_router(tutoring_router, prefix="/tutoring", tags=["Adaptive Tutoring & Scaffolding"])
 api_v1_router.include_router(learner_router, prefix="/learners", tags=["Learner Knowledge States"])
+

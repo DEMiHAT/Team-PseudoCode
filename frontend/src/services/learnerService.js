@@ -8,3 +8,4 @@ export const learnerService = {
     return await apiClient.get(`/learners/${learnerId}/profile`);
   },
 };
+

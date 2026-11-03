@@ -20,3 +20,4 @@ def test_api_health_check(client):
     assert payload["success"] is True
     assert payload["data"]["database_connected"] is True
     assert "services" in payload["data"]
+

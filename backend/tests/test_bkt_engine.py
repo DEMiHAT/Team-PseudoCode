@@ -37,3 +37,4 @@ def test_bkt_mastery_threshold():
         is_correct=True,
     )
     assert result["is_mastered"] is True
+

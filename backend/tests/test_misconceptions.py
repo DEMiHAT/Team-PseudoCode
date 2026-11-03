@@ -29,3 +29,4 @@ def test_diagnose_runtime_null_pointer():
     )
     rule_codes = [d["rule_code"] for d in diagnosed]
     assert "DSA-ERR-NULL-DEREF" in rule_codes
+

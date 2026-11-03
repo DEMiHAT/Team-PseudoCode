@@ -59,3 +59,4 @@ class Settings(BaseSettings):
 
 # Global application settings instance
 settings = Settings()
+

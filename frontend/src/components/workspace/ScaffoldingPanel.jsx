@@ -88,3 +88,4 @@ export default function ScaffoldingPanel({ onRequestHint, loading = false, activ
     </div>
   );
 }
+

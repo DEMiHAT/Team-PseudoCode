@@ -17,3 +17,4 @@ class ApiResponseSchema(BaseModel, Generic[DataT]):
     data: Optional[DataT] = None
     error: Optional[Any] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+

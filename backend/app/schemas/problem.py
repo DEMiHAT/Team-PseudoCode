@@ -1,9 +1,10 @@
 """
-Pydantic schemas for DSA coding problems and test case structures.
+Problem schemas adapter bridging Activity entities to client workspace format.
 """
 
 from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
+from app.schemas.activity import ActivityResponse
 
 
 class TestCaseItem(BaseModel):

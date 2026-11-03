@@ -22,3 +22,4 @@ class HealthResponse(BaseModel):
     database_connected: bool
     services: Dict[str, ServiceStatus]
     timestamp: datetime
+

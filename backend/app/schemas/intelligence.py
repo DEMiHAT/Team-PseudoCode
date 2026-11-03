@@ -59,3 +59,4 @@ class DiagnosisResponse(BaseModel):
     misconceptions_detected: List[MisconceptionItem]
     detected_count: int
     recommended_scaffolding_tier: int
+

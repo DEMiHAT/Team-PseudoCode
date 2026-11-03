@@ -45,3 +45,4 @@ class CodeExecutionException(AppException):
             status_code=422,
             details=details,
         )
+

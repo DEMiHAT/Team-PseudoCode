@@ -38,3 +38,4 @@ def error_response(message: str, error: Any = None) -> ApiResponse:
         data=None,
         error=error,
     )
+

@@ -1,5 +1,5 @@
 """
-Pydantic schemas for code submissions and Judge0 execution outputs.
+Submission schemas adapter.
 """
 
 from typing import Optional, List, Dict, Any
@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class CodeSubmissionRequest(BaseModel):
     learner_id: int = Field(default=1, description="Student ID submitting the code")
-    problem_id: int = Field(..., description="Target DSA problem ID")
+    problem_id: int = Field(..., description="Target Activity / Problem ID")
     code: str = Field(..., min_length=10, description="Java source code implementation")
     language: str = Field(default="java", description="Programming language")
 
@@ -25,7 +25,7 @@ class TestCaseResult(BaseModel):
 
 
 class ExecutionResultResponse(BaseModel):
-    status: str  # Accepted, Wrong Answer, Compilation Error, Runtime Error, Time Limit Exceeded
+    status: str
     is_passed: bool
     test_cases_passed: int
     total_test_cases: int
