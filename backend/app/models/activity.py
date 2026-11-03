@@ -42,3 +42,4 @@ class Activity(Base):
 
     def __repr__(self):
         return f"<Activity id={self.id} slug='{self.slug}' type='{self.activity_type}'>"
+

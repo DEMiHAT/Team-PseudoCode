@@ -38,3 +38,4 @@ class CodeSubmission(Base):
 
     def __repr__(self):
         return f"<CodeSubmission id={self.id} student={self.student_id} activity={self.activity_id} lang='{self.language}'>"
+

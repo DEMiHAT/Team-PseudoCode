@@ -252,3 +252,4 @@ def test_intervention_and_telemetry_logging(db_session):
     assert student.interventions[0].subsequent_attempt_successful is True
     assert len(student.interaction_events) == 1
     assert student.interaction_events[0].event_type == "hint_expanded"
+

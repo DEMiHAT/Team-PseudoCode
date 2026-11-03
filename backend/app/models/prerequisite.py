@@ -32,3 +32,4 @@ class Prerequisite(Base):
 
     def __repr__(self):
         return f"<Prerequisite topic_id={self.topic_id} requires={self.prerequisite_topic_id} mandatory={self.is_mandatory}>"
+

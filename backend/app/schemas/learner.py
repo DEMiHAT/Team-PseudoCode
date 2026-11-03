@@ -41,3 +41,4 @@ class LearnerProfileResponse(BaseModel):
     learner: LearnerResponse
     mastery_overview: List[ConceptMasterySummary]
     overall_mastery_index: float
+

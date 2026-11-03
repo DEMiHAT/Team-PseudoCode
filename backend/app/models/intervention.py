@@ -44,3 +44,4 @@ class Intervention(Base):
 
     def __repr__(self):
         return f"<Intervention id={self.id} student={self.student_id} tier={self.scaffolding_tier} type='{self.intervention_type}'>"
+

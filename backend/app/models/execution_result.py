@@ -40,3 +40,4 @@ class ExecutionResult(Base):
 
     def __repr__(self):
         return f"<ExecutionResult id={self.id} status='{self.status}' passed={self.is_passed} time={self.execution_time_ms}ms>"
+

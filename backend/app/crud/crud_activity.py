@@ -26,3 +26,4 @@ class CRUDAssessment(CRUDBase[Assessment, AssessmentCreate, AssessmentBase]):
 
 activity = CRUDActivity(Activity)
 assessment = CRUDAssessment(Assessment)
+

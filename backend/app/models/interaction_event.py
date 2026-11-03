@@ -34,3 +34,4 @@ class InteractionEvent(Base):
 
     def __repr__(self):
         return f"<InteractionEvent id={self.id} student={self.student_id} type='{self.event_type}'>"
+

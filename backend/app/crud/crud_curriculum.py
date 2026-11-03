@@ -42,3 +42,4 @@ subject = CRUDSubject(Subject)
 unit = CRUDUnit(Unit)
 topic = CRUDTopic(Topic)
 prerequisite = CRUDPrerequisite(Prerequisite)
+

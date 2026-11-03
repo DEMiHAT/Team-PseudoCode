@@ -48,3 +48,4 @@ class Attempt(Base):
 
     def __repr__(self):
         return f"<Attempt id={self.id} student={self.student_id} correct={self.is_correct} assisted={self.was_assisted}>"
+

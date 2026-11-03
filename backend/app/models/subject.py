@@ -33,3 +33,4 @@ class Subject(Base):
 
     def __repr__(self):
         return f"<Subject id={self.id} code='{self.code}' name='{self.name}'>"
+

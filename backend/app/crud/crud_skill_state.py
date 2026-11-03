@@ -111,3 +111,4 @@ class CRUDLearnerSkillState(CRUDBase[LearnerSkillState, SkillStateCreate, SkillS
 
 
 learner_skill_state = CRUDLearnerSkillState(LearnerSkillState)
+

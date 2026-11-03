@@ -64,3 +64,4 @@ class CRUDExecutionResult(CRUDBase[ExecutionResult, ExecutionResultCreate, Execu
 attempt = CRUDAttempt(Attempt)
 code_submission = CRUDCodeSubmission(CodeSubmission)
 execution_result = CRUDExecutionResult(ExecutionResult)
+

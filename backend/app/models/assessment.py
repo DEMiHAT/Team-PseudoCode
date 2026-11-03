@@ -35,3 +35,4 @@ class Assessment(Base):
 
     def __repr__(self):
         return f"<Assessment id={self.id} title='{self.title}' type='{self.assessment_type}'>"
+

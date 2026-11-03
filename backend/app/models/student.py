@@ -41,3 +41,4 @@ class Student(Base):
 
     def __repr__(self):
         return f"<Student id={self.id} external_id='{self.external_id}' name='{self.full_name}'>"
+

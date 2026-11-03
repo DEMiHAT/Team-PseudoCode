@@ -37,3 +37,4 @@ class ProblemDetail(BaseModel):
     sample_test_cases: List[TestCaseItem]
     is_active: bool
     model_config = ConfigDict(from_attributes=True)
+

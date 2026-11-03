@@ -30,3 +30,4 @@ class AttemptResponse(AttemptBase):
     completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+

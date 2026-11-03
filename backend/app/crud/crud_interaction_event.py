@@ -23,3 +23,4 @@ class CRUDInteractionEvent(CRUDBase[InteractionEvent, InteractionEventCreate, In
 
 
 interaction_event = CRUDInteractionEvent(InteractionEvent)
+

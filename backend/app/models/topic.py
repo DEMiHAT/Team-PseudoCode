@@ -46,3 +46,4 @@ class Topic(Base):
 
     def __repr__(self):
         return f"<Topic id={self.id} code='{self.code}' name='{self.name}'>"
+

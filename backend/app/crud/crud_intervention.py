@@ -37,3 +37,4 @@ class CRUDIntervention(CRUDBase[Intervention, InterventionCreate, InterventionBa
 
 
 intervention = CRUDIntervention(Intervention)
+

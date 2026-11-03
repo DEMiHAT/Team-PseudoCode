@@ -37,3 +37,4 @@ class CRUDPreference(CRUDBase[Preference, PreferenceCreate, PreferenceUpdate]):
 
 student = CRUDStudent(Student)
 preference = CRUDPreference(Preference)
+

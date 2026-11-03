@@ -57,3 +57,4 @@ class LearnerSkillState(Base):
             f"<LearnerSkillState student_id={self.student_id} topic_id={self.topic_id} "
             f"p_known={self.p_known:.2f} conceptual={self.conceptual_mastery:.2f} practical={self.practical_mastery:.2f}>"
         )
+

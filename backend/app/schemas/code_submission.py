@@ -24,3 +24,4 @@ class CodeSubmissionResponse(BaseModel):
     submission_timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)
+

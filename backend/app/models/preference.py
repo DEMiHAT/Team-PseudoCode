@@ -37,3 +37,4 @@ class Preference(Base):
 
     def __repr__(self):
         return f"<Preference id={self.id} student={self.student_id} lang='{self.preferred_language}'>"
+
