@@ -1,6 +1,6 @@
 """
-Main entry point for the FastAPI application.
-Configures CORS, registers database initialization on startup, and sets up routes.
+Main Application Entry Point.
+Initializes FastAPI, registers CORS, global exception handlers, and API v1 routing.
 """
 
 from contextlib import asynccontextmanager
@@ -10,36 +10,38 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.routes import router as api_router
+from app.core.logging import logger
+from app.routes.api import api_v1_router
+from app.utilities.exceptions import AppException
+from app.utilities.response import error_response
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Application lifespan manager.
-    Runs database schema creation on startup.
-    """
-    # Startup: ensure SQLite tables exist
-    print("[*] Initializing database tables...")
+    """Lifecycle manager handling database bootstrap and background tasks."""
+    logger.info(f"Starting {settings.APP_NAME} in [{settings.APP_ENV}] mode.")
+    # Initialize DB tables and seed curriculum
     init_db()
-    print("[+] Database tables initialized successfully.")
+    logger.info("Application startup sequence completed.")
     yield
-    # Shutdown logic (if any) can be placed here
-    print("[-] Shutting down application...")
+    logger.info("Application shutdown completed.")
 
 
-# Initialize FastAPI application
+# Initialize FastAPI instance
 app = FastAPI(
     title=settings.APP_NAME,
-    description="Adaptive AI Learning Platform for Class 8 Mathematics. Provides Bayesian Knowledge Tracing and misconception diagnostics.",
-    version="0.1.0",
+    description=(
+        "Intelligent One-to-One Learning Support System for IT22301: Data Structures and Algorithms. "
+        "Provides Bayesian Knowledge Tracing (BKT), multi-tier progressive scaffolding, "
+        "cognitive misconception diagnosis, and Judge0 Java execution."
+    ),
+    version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
 # Configure Cross-Origin Resource Sharing (CORS)
-# Allows the React Vite frontend to communicate with this backend API
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -49,35 +51,48 @@ app.add_middleware(
 )
 
 
-# Global generic error handler for unexpected server exceptions
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Fallback handler for uncaught exceptions."""
+# Global Domain Exception Handler
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    """Handles domain-specific application exceptions cleanly."""
+    logger.warning(f"Domain exception: {exc.message} (status: {exc.status_code})")
     return JSONResponse(
-        status_code=500,
-        content={
-            "status": "error",
-            "message": "An unexpected server error occurred.",
-            "detail": str(exc) if settings.DEBUG else "Internal server error",
-        },
+        status_code=exc.status_code,
+        content=error_response(message=exc.message, error=exc.details).dict(),
     )
 
 
-# Root route for quick verification in the browser
-@app.get("/", tags=["General"])
+# Fallback Generic Exception Handler
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """Catches uncaught exceptions to ensure consistent JSON envelope."""
+    logger.error(f"Unhandled server error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content=error_response(
+            message="An unexpected internal server error occurred.",
+            error=str(exc) if settings.DEBUG else None,
+        ).dict(),
+    )
+
+
+# Root Discovery Endpoint
+@app.get("/", tags=["Discovery"])
 def read_root():
-    """Welcome endpoint for API discovery."""
+    """Root endpoint for API service discovery and status check."""
     return {
-        "message": f"Welcome to {settings.APP_NAME}",
-        "status": "running",
-        "docs_url": "/docs",
-        "health_check": "/api/health",
+        "service": settings.APP_NAME,
+        "course": "IT22301 – Data Structures and Algorithms",
+        "status": "online",
+        "api_v1_docs": "/docs",
+        "health_check": "/api/v1/health",
     }
 
 
-# Include API routes under /api and root for convenience
-app.include_router(api_router, prefix="/api", tags=["System"])
-app.include_router(api_router, tags=["System"])  # allows /health as well as /api/health
+# Mount API v1 Routers
+app.include_router(api_v1_router, prefix="/api/v1")
+# Root-level health check endpoint convenience
+app.include_router(api_v1_router, prefix="/api")
 
 
 if __name__ == "__main__":
@@ -89,4 +104,3 @@ if __name__ == "__main__":
         port=settings.PORT,
         reload=settings.DEBUG,
     )
-

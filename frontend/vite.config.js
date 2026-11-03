@@ -10,7 +10,6 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    // Proxy API requests to FastAPI during local development
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
