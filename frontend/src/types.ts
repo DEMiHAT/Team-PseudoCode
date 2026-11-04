@@ -1,0 +1,5 @@
+export type Student={id:number;name:string;email:string}
+export type Course={id:number;slug:string;title:string;description:string}
+export type Concept={id:number;course_id:number;slug:string;title:string;summary:string;prerequisites:string[];position:number;visualizer:string;explanation?:string;complexity?:Record<string,string>;examples?:string[]}
+export type Problem={id:number;concept_id:number;title:string;statement:string;difficulty:string;starter_code:string;visible_cases:{input:string;expected:string}[]}
+export type Attempt={id:number;status:string;correct:boolean|null;compiler_output:string|null;runtime_ms:number|null;memory_kb:number|null;results:{passed:boolean;status:string;input?:string}[]}

@@ -1,0 +1,4 @@
+import {BookOpen,BrainCircuit,LayoutDashboard,LogOut,Sparkles} from 'lucide-react'
+import {NavLink,Outlet} from 'react-router-dom'
+import {Student} from '../types'
+export default function Shell({student,onLogout}:{student:Student;onLogout:()=>void}){return <div className="shell"><aside><div className="brand"><span><BrainCircuit size={22}/></span><div>PALS<small>Adaptive DSA Lab</small></div></div><nav><NavLink to="/"><LayoutDashboard/>Overview</NavLink><NavLink to="/courses"><BookOpen/>Curriculum</NavLink></nav><div className="sidebar-note"><Sparkles/><b>Learning adapts to you</b><p>Every evaluated attempt tunes the next step.</p></div><button className="profile" onClick={onLogout}><span>{student.name[0].toUpperCase()}</span><div>{student.name}<small>{student.email}</small></div><LogOut size={16}/></button></aside><main><Outlet/></main></div>}
