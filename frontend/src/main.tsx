@@ -6,4 +6,5 @@ import './styles.css'
 import './tutor.css'
 import './algorithm-lab.css'
 import './intelligence.css'
+import './product.css'
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><BrowserRouter><App/></BrowserRouter></React.StrictMode>)
