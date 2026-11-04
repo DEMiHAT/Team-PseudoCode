@@ -4,7 +4,7 @@ import {BookOpen,Code2,Eye,GitBranch,Info,Lightbulb,LoaderCircle,Play,Send,Shiel
 import {useParams} from 'react-router-dom'
 import api from '../api'
 import {Attempt,Concept,Problem,Student} from '../types'
-import Visualizer from '../components/Visualizer'
+import AlgorithmLab,{modeFromConcept} from '../components/AlgorithmLab'
 
 const tabs=[['understand',BookOpen],['visualise',Eye],['trace',GitBranch],['code',Code2]] as const
 const loadingCopy=[
@@ -93,7 +93,7 @@ export default function Learn({student}:{student:Student}){
         <h3>Complexity</h3><div className="complexities">{Object.entries(concept.complexity||{}).map(([key,value])=><div key={key}><span>{key.replaceAll('_',' ')}</span><b>{value}</b></div>)}</div>
         <h3>Patterns to notice</h3><ul>{concept.examples?.map(item=><li key={item}>{item}</li>)}</ul>
       </div>}
-      {mode==='visualise'&&<><div className="workspace-title"><div><p className="kicker">DETERMINISTIC VISUAL</p><h2>Watch state change, one operation at a time.</h2></div></div><Visualizer kind={concept.visualizer}/></>}
+      {mode==='visualise'&&<><div className="workspace-title"><div><p className="kicker">DETERMINISTIC VISUAL</p><h2>Watch state change, one operation at a time.</h2></div></div><AlgorithmLab initialMode={modeFromConcept(concept.visualizer)} embedded/></>}
       {mode==='trace'&&<div className="trace"><p className="kicker">GUIDED TRACE</p><h2>Predict before revealing.</h2><p>For <code>[7, 3, 8, 2, 5]</code>, which pair does bubble sort compare first—and does it swap?</p><details><summary>Reveal the next state</summary><div><code>[3, 7, 8, 2, 5]</code><p>7 &gt; 3, so the adjacent inversion is swapped.</p></div></details></div>}
       {mode==='code'&&problem&&<div className="code-lab">
         <div className="problem">
