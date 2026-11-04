@@ -1,19 +1,15 @@
 from dataclasses import dataclass
-from app.config import settings
+from app.intelligence.bkt import SkillParameters,update_probability
 
 @dataclass(frozen=True)
 class BKTParameters:
-    initial: float = settings.bkt_initial
-    transition: float = settings.bkt_transition
-    guess: float = settings.bkt_guess
-    slip: float = settings.bkt_slip
+    initial:float=.2
+    transition:float=.1
+    guess:float=.2
+    slip:float=.1
 
-def update(prior: float, correct: bool, params: BKTParameters = BKTParameters()) -> float:
-    if not 0 <= prior <= 1: raise ValueError("prior must be between 0 and 1")
-    if correct:
-        denominator = prior * (1 - params.slip) + (1 - prior) * params.guess
-        posterior = prior * (1 - params.slip) / denominator
-    else:
-        denominator = prior * params.slip + (1 - prior) * (1 - params.guess)
-        posterior = prior * params.slip / denominator
-    return posterior + (1 - posterior) * params.transition
+def update(prior:float,correct:bool,params:BKTParameters|SkillParameters|None=None)->float:
+    if params is None: params=BKTParameters()
+    if isinstance(params,BKTParameters):
+        params=SkillParameters(initial=params.initial,learn=params.transition,guess=params.guess,slip=params.slip)
+    return update_probability(prior,correct,params).updated_probability

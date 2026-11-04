@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     bkt_transition: float = 0.10
     bkt_guess: float = 0.20
     bkt_slip: float = 0.10
+    intelligence_v2_enabled: bool = True
+    intelligence_shadow_mode: bool = False
     model_config = SettingsConfigDict(env_file="../.env", extra="ignore")
 
     @property

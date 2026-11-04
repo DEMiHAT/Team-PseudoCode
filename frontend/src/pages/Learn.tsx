@@ -1,9 +1,9 @@
 import Editor from '@monaco-editor/react'
 import {useEffect,useState} from 'react'
-import {BookOpen,Code2,Eye,GitBranch,Info,Lightbulb,LoaderCircle,Play,Send,ShieldCheck,Sparkles} from 'lucide-react'
+import {BookOpen,BrainCircuit,Code2,Eye,GitBranch,Info,Lightbulb,Play,Send,ShieldCheck,Sparkles,TrendingUp} from 'lucide-react'
 import {useParams} from 'react-router-dom'
 import api from '../api'
-import {Attempt,Concept,Problem,Student} from '../types'
+import {Attempt,Concept,Problem,Student,SubmissionInsights} from '../types'
 import AlgorithmLab,{modeFromConcept} from '../components/AlgorithmLab'
 
 const tabs=[['understand',BookOpen],['visualise',Eye],['trace',GitBranch],['code',Code2]] as const
@@ -21,6 +21,7 @@ export default function Learn({student}:{student:Student}){
   const [mode,setMode]=useState('understand')
   const [code,setCode]=useState('')
   const [attempt,setAttempt]=useState<Attempt>()
+  const [insights,setInsights]=useState<SubmissionInsights>()
   const [hint,setHint]=useState('')
   const [hintError,setHintError]=useState('')
   const [hintLoading,setHintLoading]=useState(false)
@@ -47,6 +48,7 @@ export default function Learn({student}:{student:Student}){
   async function submit(){
     if(!problem)return
     setBusy(true)
+    setInsights(undefined)
     const {data}=await api.post('/submissions',{student_id:student.id,problem_id:problem.id,source_code:code,assisted:!!hint})
     setAttempt(data)
     const poll=window.setInterval(async()=>{
@@ -55,6 +57,9 @@ export default function Learn({student}:{student:Student}){
       if(['COMPLETED','FAILED'].includes(response.data.status)){
         window.clearInterval(poll)
         setBusy(false)
+        if(response.data.status==='COMPLETED'){
+          try{const insightResponse=await api.get(`/submissions/${data.id}/insights`);setInsights(insightResponse.data)}catch{}
+        }
       }
     },900)
   }
@@ -121,6 +126,12 @@ export default function Learn({student}:{student:Student}){
           <Editor height="460px" language="java" theme="vs-dark" value={code} onChange={value=>setCode(value||'')} options={{fontSize:14,minimap:{enabled:false},padding:{top:18}}}/>
           <div className="editor-actions"><span>{attempt?`Status: ${attempt.status}`:'Judge0 evaluates visible + hidden cases'}</span><button className="secondary" onClick={submit} disabled={busy}><Play/>Run</button><button className="primary inline" onClick={submit} disabled={busy}><Send/>{busy?'Evaluating…':'Submit'}</button></div>
           {attempt&&['COMPLETED','FAILED'].includes(attempt.status)&&<div className={`result ${attempt.correct?'pass':'fail'}`}><b>{attempt.correct?'All cases passed':'Needs another look'}</b><span>{attempt.compiler_output||`${attempt.results.filter(result=>result.passed).length}/${attempt.results.length} cases passed · ${Math.round(attempt.runtime_ms||0)}ms`}</span></div>}
+          {insights&&<div className="intelligence-card" aria-live="polite">
+            <div className="intelligence-head"><span><BrainCircuit/>PALS intelligence</span><b>{Math.round(insights.mastery.probability*100)}% mastery</b></div>
+            {insights.diagnosis?<><div className="diagnosis-title"><span className={`severity ${insights.diagnosis.severity}`}>{insights.diagnosis.severity}</span><h3>{insights.diagnosis.title}</h3><small>{Math.round(insights.diagnosis.confidence*100)}% confidence</small></div><p>{insights.diagnosis.explanation}</p><div className="next-action"><Lightbulb/><span><b>Next action</b>{insights.diagnosis.suggested_action}</span></div></>:<div className="diagnosis-clear"><ShieldCheck/><span><b>No misconception detected</b>This attempt strengthened the tracked skill.</span></div>}
+            {insights.intervention&&<div className="intervention-row"><div><small>SELECTED SUPPORT · LEVEL {insights.intervention.scaffold_level}</small><b>{insights.intervention.kind}</b><span>{insights.intervention.rationale}</span></div>{insights.intervention.recommended_mode==='visualise'&&<button onClick={()=>setMode('visualise')}><Eye/>Open visual</button>}</div>}
+            <div className="skill-row"><TrendingUp/><span>{insights.skills.length} skill signal{insights.skills.length===1?'':'s'} tracked persistently</span></div>
+          </div>}
         </div>
       </div>}
     </section>

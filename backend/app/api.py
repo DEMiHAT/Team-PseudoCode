@@ -3,13 +3,15 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, s
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, get_db
-from app.models import Assessment, AssessmentResult, Attempt, Concept, Course, Diagnosis, Intervention, LearningEvent, Mastery, MasteryHistory, Problem, Student
+from app.models import Assessment, AssessmentResult, Attempt, Concept, Course, Diagnosis, Intervention, LearningEvent, Mastery, MasteryHistory, Problem, SkillMastery, SkillMasteryHistory, Student, TutorInteraction
 from app.schemas import AssessmentSubmit, AttemptOut, ConceptDetail, ConceptOut, CourseOut, DiagnosisRequest, EventCreate, InterventionRequest, MasteryOut, ProblemOut, StudentCreate, StudentOut, SubmissionCreate, TutorRequest
 from app.services.bkt import update
 from app.services.diagnosis import diagnose
 from app.services.interventions import select_intervention
 from app.services.judge0 import Judge0Service, JudgeUnavailable
-from app.services.tutor import tutor_response
+from app.intelligence.bkt import parameters_for,update_probability
+from app.intelligence.tutor import generate_tutor_response
+from app.intelligence.diagnosis import canonical_category
 
 router = APIRouter(prefix="/api/v1")
 
@@ -18,13 +20,23 @@ def need(db, cls, ident):
     if not obj: raise HTTPException(404, f"{cls.__name__} not found")
     return obj
 
+def ensure_student_skills(db:Session,student:Student):
+    existing=set(db.scalars(select(SkillMastery.skill_key).where(SkillMastery.student_id==student.id)).all())
+    for concept in db.scalars(select(Concept)):
+        key=f"{concept.slug}:core"
+        if key not in existing:
+            params=parameters_for(key);db.add(SkillMastery(student_id=student.id,concept_id=concept.id,skill_key=key,probability=params.initial,mastery_threshold=params.threshold))
+
 @router.post("/students", response_model=StudentOut, status_code=201)
 def create_student(body: StudentCreate, db: Session = Depends(get_db)):
     existing = db.scalar(select(Student).where(Student.email == body.email))
-    if existing: return existing
+    if existing:
+        ensure_student_skills(db,existing);db.commit();return existing
     student = Student(**body.model_dump()); db.add(student); db.flush()
-    for concept_id in db.scalars(select(Concept.id)):
-        db.add(Mastery(student_id=student.id, concept_id=concept_id, probability=.2))
+    for concept in db.scalars(select(Concept)):
+        db.add(Mastery(student_id=student.id, concept_id=concept.id, probability=.2))
+        params=parameters_for(f"{concept.slug}:core")
+        db.add(SkillMastery(student_id=student.id,concept_id=concept.id,skill_key=f"{concept.slug}:core",probability=params.initial,mastery_threshold=params.threshold))
     db.commit(); db.refresh(student); return student
 
 @router.get("/students/{student_id}", response_model=StudentOut)
@@ -75,7 +87,9 @@ def dashboard(student_id: int, db: Session = Depends(get_db)):
     concepts = [{"id": c.id, "title": c.title, "probability": m.probability, "observations": m.observations} for m, c in rows]
     attempts = db.scalars(select(Attempt).where(Attempt.student_id == student_id).order_by(Attempt.id.desc()).limit(8)).all()
     evaluated = [a for a in attempts if a.correct is not None]
-    return {"mastery": concepts, "overall": sum(x["probability"] for x in concepts) / max(len(concepts), 1), "accuracy": sum(bool(a.correct) for a in evaluated) / max(len(evaluated), 1), "recent_attempts": [AttemptOut.model_validate(a) for a in attempts], "recommended_next": min(concepts, key=lambda x: x["probability"]) if concepts else None}
+    skill_rows=db.scalars(select(SkillMastery).where(SkillMastery.student_id==student_id)).all()
+    recent_diagnoses=db.execute(select(Diagnosis,Concept).join(Attempt,Attempt.id==Diagnosis.attempt_id).join(Concept,Concept.id==Diagnosis.concept_id).where(Attempt.student_id==student_id).order_by(Diagnosis.id.desc()).limit(4)).all()
+    return {"mastery": concepts, "overall": sum(x["probability"] for x in concepts) / max(len(concepts), 1), "accuracy": sum(bool(a.correct) for a in evaluated) / max(len(evaluated), 1), "recent_attempts": [AttemptOut.model_validate(a) for a in attempts], "recommended_next": min(concepts, key=lambda x: x["probability"]) if concepts else None,"intelligence":{"skills_tracked":len(skill_rows),"skills_mastered":sum(row.probability>=row.mastery_threshold for row in skill_rows),"recent_diagnoses":[{"category":d.category,"title":d.title,"severity":d.severity,"concept":c.title,"confidence":d.confidence} for d,c in recent_diagnoses]}}
 
 @router.post("/events", status_code=201)
 def event(body: EventCreate, db: Session = Depends(get_db)):
@@ -97,17 +111,40 @@ async def evaluate_attempt(attempt_id: int):
             mastery_row = db.scalar(select(Mastery).where(Mastery.student_id == attempt.student_id, Mastery.concept_id == problem.concept_id))
             before = mastery_row.probability; after = update(before, bool(attempt.correct)); mastery_row.probability = after; mastery_row.observations += 1
             db.add(MasteryHistory(mastery_id=mastery_row.id, attempt_id=attempt.id, before=before, after=after, correct=bool(attempt.correct)))
+            core_skill=_update_skill_mastery(db,attempt.student_id,problem,f"{need(db,Concept,problem.concept_id).slug}:core",bool(attempt.correct),attempt.id)
             diagnosis_row = None
             if not attempt.correct:
                 d = diagnose(attempt, problem); diagnosis_row = Diagnosis(attempt_id=attempt.id, concept_id=problem.concept_id, **d); db.add(diagnosis_row); db.flush()
+                _update_skill_mastery(db,attempt.student_id,problem,f"{need(db,Concept,problem.concept_id).slug}:{diagnosis_row.category}",False,attempt.id)
             policy = select_intervention(db, attempt.student_id, problem.concept_id, diagnosis_row)
             db.add(Intervention(student_id=attempt.student_id, concept_id=problem.concept_id, diagnosis_id=diagnosis_row.id if diagnosis_row else None, **policy))
-            db.add(LearningEvent(student_id=attempt.student_id, concept_id=problem.concept_id, kind="submission_evaluated", payload={"attempt_id": attempt.id, "correct": attempt.correct, "mastery_before": before, "mastery_after": after})); attempt.status = "COMPLETED"; db.commit()
+            db.add(LearningEvent(student_id=attempt.student_id, concept_id=problem.concept_id, kind="submission_evaluated", payload={"attempt_id": attempt.id, "correct": attempt.correct, "mastery_before": before, "mastery_after": after,"skill_mastery_after":core_skill.probability,"diagnosis":diagnosis_row.category if diagnosis_row else None})); attempt.status = "COMPLETED"; db.commit()
         except JudgeUnavailable as exc:
             attempt.status = "FAILED"; attempt.compiler_output = str(exc); db.commit()
 
 @router.get("/submissions/{attempt_id}", response_model=AttemptOut)
 def submission(attempt_id: int, db: Session = Depends(get_db)): return need(db, Attempt, attempt_id)
+
+def _update_skill_mastery(db:Session,student_id:int,problem:Problem,skill_key:str,correct:bool,attempt_id:int)->SkillMastery:
+    params=parameters_for(skill_key)
+    row=db.scalar(select(SkillMastery).where(SkillMastery.student_id==student_id,SkillMastery.concept_id==problem.concept_id,SkillMastery.skill_key==skill_key))
+    if not row:
+        row=SkillMastery(student_id=student_id,concept_id=problem.concept_id,skill_key=skill_key,probability=params.initial,mastery_threshold=params.threshold);db.add(row);db.flush()
+    result=update_probability(row.probability,correct,params)
+    row.probability=result.updated_probability;row.observations+=1
+    db.add(SkillMasteryHistory(skill_mastery_id=row.id,attempt_id=attempt_id,prior_probability=result.prior_probability,posterior_probability=result.posterior_probability,updated_probability=result.updated_probability,correct=correct))
+    return row
+
+@router.get("/submissions/{attempt_id}/insights")
+def submission_insights(attempt_id:int,db:Session=Depends(get_db)):
+    attempt=need(db,Attempt,attempt_id);problem=need(db,Problem,attempt.problem_id);concept=need(db,Concept,problem.concept_id)
+    diagnosis_row=db.scalar(select(Diagnosis).where(Diagnosis.attempt_id==attempt_id))
+    intervention_row=db.scalar(select(Intervention).where(Intervention.student_id==attempt.student_id,Intervention.concept_id==problem.concept_id).order_by(Intervention.id.desc()))
+    concept_mastery=db.scalar(select(Mastery).where(Mastery.student_id==attempt.student_id,Mastery.concept_id==problem.concept_id))
+    skills=db.scalars(select(SkillMastery).where(SkillMastery.student_id==attempt.student_id,SkillMastery.concept_id==problem.concept_id)).all()
+    diagnosis_data=None if not diagnosis_row else {"id":diagnosis_row.id,"category":diagnosis_row.category,"title":diagnosis_row.title,"severity":diagnosis_row.severity,"confidence":diagnosis_row.confidence,"explanation":diagnosis_row.explanation,"evidence":diagnosis_row.evidence,"suggested_action":diagnosis_row.suggested_action,"misconception":diagnosis_row.misconception,"details":diagnosis_row.details}
+    intervention_data=None if not intervention_row else {"id":intervention_row.id,"kind":intervention_row.kind,"scaffold_level":intervention_row.scaffold_level,"priority":intervention_row.priority,"rationale":intervention_row.rationale,"recommended_mode":"visualise" if intervention_row.kind=="Visualization" else "code"}
+    return {"attempt_id":attempt_id,"concept":{"id":concept.id,"title":concept.title,"visualizer":concept.visualizer},"diagnosis":diagnosis_data,"intervention":intervention_data,"mastery":{"probability":concept_mastery.probability,"observations":concept_mastery.observations},"skills":[{"key":row.skill_key,"probability":row.probability,"observations":row.observations,"mastered":row.probability>=row.mastery_threshold} for row in skills]}
 
 @router.post("/diagnosis")
 def diagnosis(body: DiagnosisRequest, db: Session = Depends(get_db)):
@@ -126,21 +163,41 @@ def intervention(body: InterventionRequest, db: Session = Depends(get_db)):
 def history(student_id: int, db: Session = Depends(get_db)):
     need(db, Student, student_id); return db.scalars(select(LearningEvent).where(LearningEvent.student_id == student_id).order_by(LearningEvent.id.desc()).limit(100)).all()
 
-async def _tutor(body: TutorRequest, db: Session):
+async def _tutor(body: TutorRequest, db: Session,response_type:str="hint"):
     concept = need(db, Concept, body.concept_id)
     mastery_row = db.scalar(select(Mastery).where(Mastery.student_id == body.student_id, Mastery.concept_id == body.concept_id))
     intervention_row = need(db, Intervention, body.intervention_id) if body.intervention_id else db.scalar(select(Intervention).where(Intervention.student_id == body.student_id, Intervention.concept_id == body.concept_id).order_by(Intervention.id.desc()))
     diagnosis_row = db.get(Diagnosis, intervention_row.diagnosis_id) if intervention_row and intervention_row.diagnosis_id else None
-    context = {"concept": concept.title, "mastery_estimate": round(mastery_row.probability, 3) if mastery_row else .2, "diagnosis": diagnosis_row.category if diagnosis_row else "none", "intervention": intervention_row.kind if intervention_row else "conceptual hint", "scaffold_level": intervention_row.scaffold_level if intervention_row else 1, "student_question": body.question or "Provide the next helpful prompt."}
-    text, fallback = await tutor_response(context); db.add(LearningEvent(student_id=body.student_id, concept_id=body.concept_id, kind="hint_viewed", payload={"fallback": fallback, "scaffold_level": context["scaffold_level"]})); db.commit()
-    return {"response": text, "fallback": fallback, "context": context}
+    recent_attempt=db.scalar(select(Attempt).join(Problem,Problem.id==Attempt.problem_id).where(Attempt.student_id==body.student_id,Problem.concept_id==body.concept_id).order_by(Attempt.id.desc()))
+    context = {"concept": concept.title, "mastery_estimate": round(mastery_row.probability, 3) if mastery_row else .2, "diagnosis": canonical_category(diagnosis_row.category) if diagnosis_row else "none", "diagnostic_explanation":diagnosis_row.explanation if diagnosis_row else "none", "intervention": intervention_row.kind if intervention_row else "conceptual hint", "scaffold_level": intervention_row.scaffold_level if intervention_row else 1, "student_question": body.question or "Provide the next helpful prompt.","recent_attempt_status":recent_attempt.status if recent_attempt else "none","student_code":recent_attempt.source_code[:6000] if recent_attempt else "not provided","compiler_or_runtime_feedback":(recent_attempt.compiler_output or "none")[:2000] if recent_attempt else "none"}
+    result=await generate_tutor_response(context,response_type)
+    db.add(TutorInteraction(student_id=body.student_id,concept_id=body.concept_id,intervention_id=intervention_row.id if intervention_row else None,response_type=result.response_type,provider=result.provider,model=result.model,fallback=result.fallback,prompt_context=context,response=result.response))
+    db.add(LearningEvent(student_id=body.student_id, concept_id=body.concept_id, kind="hint_viewed", payload={"fallback": result.fallback, "scaffold_level": context["scaffold_level"],"provider":result.provider,"model":result.model})); db.commit()
+    return {"response": result.response, "fallback": result.fallback,"provider":result.provider,"model":result.model,"response_type":result.response_type, "context": context}
 
 @router.post("/tutor/hints")
-async def hint(body: TutorRequest, db: Session = Depends(get_db)): return await _tutor(body, db)
+async def hint(body: TutorRequest, db: Session = Depends(get_db)): return await _tutor(body, db,"hint")
 @router.post("/tutor/explanations")
-async def explanation(body: TutorRequest, db: Session = Depends(get_db)): return await _tutor(body, db)
+async def explanation(body: TutorRequest, db: Session = Depends(get_db)): return await _tutor(body, db,"explanation")
 @router.post("/tutor/questions")
-async def question(body: TutorRequest, db: Session = Depends(get_db)): return await _tutor(body, db)
+async def question(body: TutorRequest, db: Session = Depends(get_db)): return await _tutor(body, db,"step_by_step")
+
+@router.get("/students/{student_id}/intelligence")
+def student_intelligence(student_id:int,db:Session=Depends(get_db)):
+    need(db,Student,student_id)
+    skills=db.execute(select(SkillMastery,Concept).join(Concept,Concept.id==SkillMastery.concept_id).where(SkillMastery.student_id==student_id).order_by(SkillMastery.probability)).all()
+    diagnoses=db.execute(select(Diagnosis,Concept).join(Attempt,Attempt.id==Diagnosis.attempt_id).join(Concept,Concept.id==Diagnosis.concept_id).where(Attempt.student_id==student_id).order_by(Diagnosis.id.desc()).limit(20)).all()
+    return {"skills":[{"key":s.skill_key,"concept":c.title,"concept_id":c.id,"probability":s.probability,"observations":s.observations,"mastered":s.probability>=s.mastery_threshold} for s,c in skills],"diagnoses":[{"category":d.category,"title":d.title,"severity":d.severity,"concept":c.title,"confidence":d.confidence,"created_from_attempt":d.attempt_id} for d,c in diagnoses]}
+
+@router.get("/analytics/intelligence")
+def intelligence_analytics(db:Session=Depends(get_db)):
+    category_rows=db.execute(select(Diagnosis.category,func.count()).group_by(Diagnosis.category).order_by(func.count().desc())).all()
+    category_totals={}
+    for category,count in category_rows:
+        key=canonical_category(category);category_totals[key]=category_totals.get(key,0)+count
+    interventions=db.execute(select(Intervention.kind,func.count()).group_by(Intervention.kind).order_by(func.count().desc())).all()
+    struggling=db.execute(select(SkillMastery,Student,Concept).join(Student,Student.id==SkillMastery.student_id).join(Concept,Concept.id==SkillMastery.concept_id).where(SkillMastery.observations>0,SkillMastery.probability<.4).order_by(SkillMastery.probability).limit(20)).all()
+    return {"diagnosis_counts":[{"category":category,"count":count} for category,count in sorted(category_totals.items(),key=lambda item:item[1],reverse=True)],"intervention_counts":[{"kind":kind,"count":count} for kind,count in interventions],"struggling_skills":[{"student_id":student.id,"student":student.name,"concept":concept.title,"skill":skill.skill_key,"probability":skill.probability} for skill,student,concept in struggling]}
 
 @router.get("/assessments")
 def assessments(db: Session = Depends(get_db)): return db.scalars(select(Assessment)).all()

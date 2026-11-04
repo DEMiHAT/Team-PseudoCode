@@ -83,6 +83,29 @@ class MasteryHistory(Base):
     correct: Mapped[bool] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
+class SkillMastery(Base):
+    __tablename__ = "skill_mastery"
+    __table_args__ = (UniqueConstraint("student_id", "concept_id", "skill_key"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"), index=True)
+    concept_id: Mapped[int] = mapped_column(ForeignKey("concepts.id"), index=True)
+    skill_key: Mapped[str] = mapped_column(String(120), index=True)
+    probability: Mapped[float] = mapped_column(Float, default=.2)
+    observations: Mapped[int] = mapped_column(Integer, default=0)
+    mastery_threshold: Mapped[float] = mapped_column(Float, default=.85)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+class SkillMasteryHistory(Base):
+    __tablename__ = "skill_mastery_history"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    skill_mastery_id: Mapped[int] = mapped_column(ForeignKey("skill_mastery.id"), index=True)
+    attempt_id: Mapped[int | None] = mapped_column(ForeignKey("attempts.id"), nullable=True)
+    prior_probability: Mapped[float] = mapped_column(Float)
+    posterior_probability: Mapped[float] = mapped_column(Float)
+    updated_probability: Mapped[float] = mapped_column(Float)
+    correct: Mapped[bool] = mapped_column(Boolean)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
 class Diagnosis(Base):
     __tablename__ = "diagnoses"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -92,6 +115,12 @@ class Diagnosis(Base):
     evidence: Mapped[str] = mapped_column(Text)
     confidence: Mapped[float] = mapped_column(Float)
     recommended_response: Mapped[str] = mapped_column(Text)
+    severity: Mapped[str] = mapped_column(String(20), default="medium")
+    title: Mapped[str] = mapped_column(String(160), default="Learning diagnosis")
+    explanation: Mapped[str] = mapped_column(Text, default="")
+    suggested_action: Mapped[str] = mapped_column(Text, default="")
+    misconception: Mapped[bool] = mapped_column(Boolean, default=False)
+    details: Mapped[list] = mapped_column(JSON, default=list)
 
 class Intervention(Base):
     __tablename__ = "interventions"
@@ -103,6 +132,7 @@ class Intervention(Base):
     scaffold_level: Mapped[int] = mapped_column(Integer)
     rationale: Mapped[str] = mapped_column(Text)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
+    priority: Mapped[str] = mapped_column(String(20), default="medium")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 class LearningEvent(Base):
@@ -112,6 +142,20 @@ class LearningEvent(Base):
     concept_id: Mapped[int | None] = mapped_column(ForeignKey("concepts.id"), nullable=True)
     kind: Mapped[str] = mapped_column(String(60), index=True)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+class TutorInteraction(Base):
+    __tablename__ = "tutor_interactions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"), index=True)
+    concept_id: Mapped[int] = mapped_column(ForeignKey("concepts.id"), index=True)
+    intervention_id: Mapped[int | None] = mapped_column(ForeignKey("interventions.id"), nullable=True)
+    response_type: Mapped[str] = mapped_column(String(40))
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    fallback: Mapped[bool] = mapped_column(Boolean, default=False)
+    prompt_context: Mapped[dict] = mapped_column(JSON, default=dict)
+    response: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 class Assessment(Base):
