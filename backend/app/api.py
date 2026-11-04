@@ -187,7 +187,20 @@ def student_intelligence(student_id:int,db:Session=Depends(get_db)):
     need(db,Student,student_id)
     skills=db.execute(select(SkillMastery,Concept).join(Concept,Concept.id==SkillMastery.concept_id).where(SkillMastery.student_id==student_id).order_by(SkillMastery.probability)).all()
     diagnoses=db.execute(select(Diagnosis,Concept).join(Attempt,Attempt.id==Diagnosis.attempt_id).join(Concept,Concept.id==Diagnosis.concept_id).where(Attempt.student_id==student_id).order_by(Diagnosis.id.desc()).limit(20)).all()
-    return {"skills":[{"key":s.skill_key,"concept":c.title,"concept_id":c.id,"probability":s.probability,"observations":s.observations,"mastered":s.probability>=s.mastery_threshold} for s,c in skills],"diagnoses":[{"category":d.category,"title":d.title,"severity":d.severity,"concept":c.title,"confidence":d.confidence,"created_from_attempt":d.attempt_id} for d,c in diagnoses]}
+    interventions=db.execute(select(Intervention,Concept).join(Concept,Concept.id==Intervention.concept_id).where(Intervention.student_id==student_id).order_by(Intervention.id.desc()).limit(20)).all()
+    tutor_rows=db.execute(select(TutorInteraction,Concept).join(Concept,Concept.id==TutorInteraction.concept_id).where(TutorInteraction.student_id==student_id).order_by(TutorInteraction.id.desc()).limit(10)).all()
+    events=db.scalars(select(LearningEvent).where(LearningEvent.student_id==student_id,LearningEvent.kind=="submission_evaluated").order_by(LearningEvent.id.desc()).limit(12)).all()
+    return {"skills":[{"key":s.skill_key,"concept":c.title,"concept_id":c.id,"probability":s.probability,"observations":s.observations,"mastered":s.probability>=s.mastery_threshold} for s,c in skills],"diagnoses":[{"category":canonical_category(d.category),"title":d.title,"severity":d.severity,"concept":c.title,"confidence":d.confidence,"created_from_attempt":d.attempt_id} for d,c in diagnoses],"interventions":[{"kind":item.kind,"level":item.scaffold_level,"priority":item.priority,"rationale":item.rationale,"concept":concept.title,"created_at":item.created_at} for item,concept in interventions],"tutor_activity":[{"provider":item.provider,"model":item.model,"fallback":item.fallback,"response_type":item.response_type,"concept":concept.title,"created_at":item.created_at} for item,concept in tutor_rows],"mastery_movements":[event.payload for event in events]}
+
+@router.get("/system/intelligence-status")
+def intelligence_status(db:Session=Depends(get_db)):
+    last_tutor=db.scalar(select(TutorInteraction).order_by(TutorInteraction.id.desc()))
+    return {"pipeline":"active","models":[
+        {"id":"bkt","name":"Bayesian Knowledge Tracing","type":"probabilistic","status":"active","detail":"Persistent concept and skill mastery","version":"BKT v2"},
+        {"id":"diagnosis","name":"Programming Error Diagnoser","type":"rule-based","status":"active","detail":"Java compiler, runtime, boundary and misconception signals","version":"9 categories"},
+        {"id":"intervention","name":"Reinforcement Selector","type":"policy","status":"active","detail":"Mastery + diagnosis + repeated-error routing","version":"6 scaffold levels"},
+        {"id":"tutor","name":"Local Qwen Tutor","type":"generative","status":"active" if last_tutor and not last_tutor.fallback else "ready","detail":"Last response used local Ollama" if last_tutor and not last_tutor.fallback else "Local provider configured; deterministic fallback available","version":last_tutor.model if last_tutor else settings.ollama_model},
+    ],"totals":{"skill_states":db.scalar(select(func.count()).select_from(SkillMastery)) or 0,"diagnoses":db.scalar(select(func.count()).select_from(Diagnosis)) or 0,"interventions":db.scalar(select(func.count()).select_from(Intervention)) or 0,"tutor_responses":db.scalar(select(func.count()).select_from(TutorInteraction)) or 0}}
 
 @router.get("/analytics/intelligence")
 def intelligence_analytics(db:Session=Depends(get_db)):
