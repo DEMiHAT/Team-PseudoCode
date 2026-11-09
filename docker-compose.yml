@@ -14,7 +14,7 @@ services:
     depends_on: [judge0]
   web:
     build: ./frontend
-    ports: ["5173:80"]
+    ports: ["${PALS_WEB_PORT:-5173}:80"]
     depends_on: [api]
   judge0:
     image: judge0/judge0:1.13.1
@@ -27,7 +27,6 @@ services:
       POSTGRES_PASSWORD: judge0
       MAX_MEMORY_LIMIT: 2048000
     depends_on: [redis, postgres]
-    ports: ["2358:2358"]
   judge0-config:
     image: postgres:16-alpine
     environment:
