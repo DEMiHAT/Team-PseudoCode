@@ -4,16 +4,16 @@ services:
     env_file: ${PALS_ENV_FILE:-.env.example}
     environment:
       DATABASE_URL: sqlite:////app/data/pals.db
-      OLLAMA_BASE_URL: http://127.0.0.1:11434
-      JUDGE0_BASE_URL: http://127.0.0.1:2358
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      JUDGE0_BASE_URL: http://judge0:2358
       REQUEST_TIMEOUT_SECONDS: 120
-    network_mode: host
+      FRONTEND_ORIGINS: http://localhost:5173
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes: ["pals-data:/app/data"]
     depends_on: [judge0]
   web:
     build: ./frontend
-    environment:
-      VITE_API_URL: http://localhost:8000/api/v1
     ports: ["5173:80"]
     depends_on: [api]
   judge0:
