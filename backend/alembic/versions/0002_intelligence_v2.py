@@ -6,6 +6,11 @@ revision = "0002"
 down_revision = "0001"
 
 def upgrade():
+    # The original baseline migration creates the complete SQLAlchemy metadata.
+    # Fresh installations therefore already have these tables; retain this
+    # revision as a no-op marker while supporting databases from older builds.
+    if "skill_mastery" in sa.inspect(op.get_bind()).get_table_names():
+        return
     op.create_table("skill_mastery",
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("student_id", sa.Integer(), sa.ForeignKey("students.id"), nullable=False),
